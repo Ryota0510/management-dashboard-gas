@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+            margin: 0;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .emoji-selector {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        .emoji-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s;
+        }
+        .emoji-btn:hover {
+            border-color: #00B900;
+            transform: scale(1.1);
+        }
+        .emoji-btn.selected {
+            border-color: #00B900;
+            background-color: #f0f9f0;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #00B900;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        .options {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .option-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .option-item:last-child {
+            margin-bottom: 0;
+        }
+        .option-item input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        .option-item label {
+            margin-bottom: 0;
+            font-weight: normal;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            font-size: 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .btn-send {
+            background-color: #00B900;
+            color: white;
+        }
+        .btn-send:hover {
+            background-color: #008800;
+        }
+        .btn-cancel {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+        .btn-cancel:hover {
+            background-color: #d0d0d0;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            display: none;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #00B900;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .preview {
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 13px;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .preview-title {
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📱 LINE通知を送信</h2>
+        
+        <div class="emoji-selector">
+            <button class="emoji-btn selected" data-emoji="📢" onclick="selectEmoji(this)">📢</button>
+            <button class="emoji-btn" data-emoji="📝" onclick="selectEmoji(this)">📝</button>
+            <button class="emoji-btn" data-emoji="🔔" onclick="selectEmoji(this)">🔔</button>
+            <button class="emoji-btn" data-emoji="📊" onclick="selectEmoji(this)">📊</button>
+            <button class="emoji-btn" data-emoji="⚠️" onclick="selectEmoji(this)">⚠️</button>
+            <button class="emoji-btn" data-emoji="✅" onclick="selectEmoji(this)">✅</button>
+            <button class="emoji-btn" data-emoji="🎉" onclick="selectEmoji(this)">🎉</button>
+            <button class="emoji-btn" data-emoji="💡" onclick="selectEmoji(this)">💡</button>
+        </div>
+        
+        <div class="form-group">
+            <label for="title">タイトル</label>
+            <input type="text" id="title" placeholder="通知のタイトルを入力" oninput="updatePreview()">
+        </div>
+        
+        <div class="form-group">
+            <label for="message">メッセージ</label>
+            <textarea id="message" placeholder="送信するメッセージを入力" oninput="updatePreview()"></textarea>
+        </div>
+        
+        <div class="options">
+            <div class="option-item">
+                <input type="checkbox" id="includeTimestamp" checked onchange="updatePreview()">
+                <label for="includeTimestamp">送信日時を含める</label>
+            </div>
+            <div class="option-item">
+                <input type="checkbox" id="includeSender" onchange="updatePreview()">
+                <label for="includeSender">送信者情報を含める</label>
+            </div>
+        </div>
+        
+        <div class="preview" id="preview">
+            <div class="preview-title">プレビュー</div>
+            <div id="previewContent"></div>
+        </div>
+        
+        <div class="button-group">
+            <button id="sendBtn" class="btn-send" onclick="sendNotification()">
+                送信
+            </button>
+            <button class="btn-cancel" onclick="google.script.host.close()">
+                キャンセル
+            </button>
+        </div>
+        
+        <div id="status" class="status"></div>
+    </div>
+    
+    <script>
+        let selectedEmoji = '📢';
+        
+        function selectEmoji(btn) {
+            // 全ての絵文字ボタンから選択状態を解除
+            document.querySelectorAll('.emoji-btn').forEach(b => {
+                b.classList.remove('selected');
+            });
+            
+            // クリックされたボタンを選択状態に
+            btn.classList.add('selected');
+            selectedEmoji = btn.getAttribute('data-emoji');
+            updatePreview();
+        }
+        
+        function updatePreview() {
+            const title = document.getElementById('title').value;
+            const message = document.getElementById('message').value;
+            const includeTimestamp = document.getElementById('includeTimestamp').checked;
+            const includeSender = document.getElementById('includeSender').checked;
+            
+            if (!title && !message) {
+                document.getElementById('preview').style.display = 'none';
+                return;
+            }
+            
+            let previewText = '';
+            
+            if (title) {
+                previewText += `${selectedEmoji} ${title}\n`;
+                previewText += `━━━━━━━━━━━━\n`;
+            }
+            
+            if (message) {
+                previewText += message;
+            }
+            
+            if (includeSender) {
+                previewText += '\n\n送信者: (メールアドレス)';
+            }
+            
+            if (includeTimestamp) {
+                previewText += '\n送信日時: ' + new Date().toLocaleString('ja-JP');
+            }
+            
+            document.getElementById('previewContent').textContent = previewText;
+            document.getElementById('preview').style.display = 'block';
+        }
+        
+        function sendNotification() {
+            const button = document.getElementById('sendBtn');
+            const title = document.getElementById('title').value;
+            const message = document.getElementById('message').value;
+            
+            // バリデーション
+            if (!title || !message) {
+                showStatus('タイトルとメッセージを両方入力してください', 'error');
+                return;
+            }
+            
+            // オプションを取得
+            const options = {
+                emoji: selectedEmoji,
+                includeTimestamp: document.getElementById('includeTimestamp').checked,
+                includeSender: document.getElementById('includeSender').checked
+            };
+            
+            // ボタンを無効化
+            button.disabled = true;
+            button.innerHTML = '送信中<span class="loading"></span>';
+            
+            // GAS関数を呼び出し
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus('✅ 送信が完了しました！', 'success');
+                        // フォームをクリア
+                        document.getElementById('title').value = '';
+                        document.getElementById('message').value = '';
+                        updatePreview();
+                        
+                        // 3秒後にダイアログを閉じる
+                        setTimeout(function() {
+                            google.script.host.close();
+                        }, 3000);
+                    } else {
+                        showStatus('❌ 送信に失敗しました: ' + (result.error || 'エラーが発生しました'), 'error');
+                        button.disabled = false;
+                        button.innerHTML = '送信';
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ エラー: ' + error, 'error');
+                    button.disabled = false;
+                    button.innerHTML = '送信';
+                })
+                .sendCustomNotification(title, message, options);
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+        }
+        
+        // 初期表示時にプレビューを更新
+        window.onload = function() {
+            updatePreview();
+        };
+    </script>
+</body>
+</html>

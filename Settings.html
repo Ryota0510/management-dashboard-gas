@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+            margin: 0;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #00B900;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .current-value {
+            font-size: 12px;
+            color: #00B900;
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #f0f9f0;
+            border-radius: 4px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        button {
+            flex: 1;
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background-color: #00B900;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #008800;
+        }
+        .btn-secondary {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background-color: #d0d0d0;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            display: none;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .instructions {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .instructions h4 {
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #00B900;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+            margin-left: 5px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>LINE通知 初期設定</h2>
+        <p class="subtitle">LINE公式アカウントのMessaging APIと連携するための設定を行います</p>
+        
+        <div class="instructions">
+            <h4>📋 設定に必要なもの</h4>
+            <ol>
+                <li><strong>チャネルアクセストークン</strong>: LINE Developersの「Messaging API」タブから取得</li>
+                <li><strong>グループID</strong>: LINEグループを識別するID（取得方法は下記参照）</li>
+            </ol>
+        </div>
+        
+        <div class="form-group">
+            <label for="token">チャネルアクセストークン（Channel Access Token）</label>
+            <input type="password" id="token" placeholder="長い英数字の文字列を入力">
+            <div class="help-text">LINE Developersの「Messaging API」タブ → 「Channel access token」セクションで発行</div>
+            <div id="tokenStatus" class="current-value" style="display: none;"></div>
+        </div>
+        
+        <div class="form-group">
+            <label for="groupId">グループID（Group ID）</label>
+            <input type="text" id="groupId" placeholder="C1234567890abcdef...">
+            <div class="help-text">WebhookまたはLINE Official Account Managerから取得</div>
+            <div id="groupIdStatus" class="current-value" style="display: none;"></div>
+        </div>
+        
+        <div class="button-group">
+            <button id="saveBtn" class="btn-primary" onclick="saveSettings()">
+                設定を保存
+            </button>
+            <button class="btn-secondary" onclick="showInstructions()">
+                グループID取得方法
+            </button>
+        </div>
+        
+        <div id="status" class="status"></div>
+    </div>
+    
+    <script>
+        // ページ読み込み時に現在の設定を表示
+        window.onload = function() {
+            google.script.run
+                .withSuccessHandler(displayCurrentSettings)
+                .withFailureHandler(function(error) {
+                    console.error('設定読み込みエラー:', error);
+                })
+                .getCurrentSettings();
+        };
+        
+        function displayCurrentSettings(settings) {
+            if (settings.hasToken) {
+                const tokenStatus = document.getElementById('tokenStatus');
+                tokenStatus.textContent = '✅ 設定済み: ' + settings.tokenPreview;
+                tokenStatus.style.display = 'block';
+            }
+            
+            if (settings.hasGroupId) {
+                const groupIdStatus = document.getElementById('groupIdStatus');
+                groupIdStatus.textContent = '✅ 設定済み: ' + settings.groupId;
+                groupIdStatus.style.display = 'block';
+                document.getElementById('groupId').value = settings.groupId;
+            }
+        }
+        
+        function saveSettings() {
+            const button = document.getElementById('saveBtn');
+            const token = document.getElementById('token').value;
+            const groupId = document.getElementById('groupId').value;
+            
+            // バリデーション
+            if (!token || !groupId) {
+                showStatus('両方の項目を入力してください', 'warning');
+                return;
+            }
+            
+            // ボタンを無効化
+            button.disabled = true;
+            button.innerHTML = '保存中<span class="loading"></span>';
+            
+            // 保存処理
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    showStatus(result, 'success');
+                    // 3秒後にダイアログを閉じる
+                    setTimeout(function() {
+                        google.script.host.close();
+                    }, 3000);
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('保存に失敗しました: ' + error, 'error');
+                    button.disabled = false;
+                    button.innerHTML = '設定を保存';
+                })
+                .saveSettings(token, groupId);
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+        }
+        
+        function showInstructions() {
+            const message = `グループIDの取得方法：
+
+方法1: Webhookを使用
+1. GASプロジェクトをウェブアプリとしてデプロイ
+2. LINE DevelopersでWebhook URLを設定
+3. グループでメッセージを送信
+4. スプレッドシートの「GroupID_Log」シートを確認
+
+方法2: LINE Official Account Manager
+1. manager.line.biz にログイン
+2. 「チャット」タブでグループを選択
+3. URLからIDを確認`;
+            
+            alert(message);
+        }
+    </script>
+</body>
+</html>
