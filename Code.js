@@ -96,19 +96,6 @@ function sendLineNotification(message) {
   }
 }
 
-/**
- * テスト送信
- */
-function testLineNotification() {
-  const testMessage = '🔔 テスト通知\nGASからLINEグループへの接続テストです。\n' + new Date().toLocaleString('ja-JP');
-  const result = sendLineNotification(testMessage);
-  
-  if (result.success) {
-    SpreadsheetApp.getUi().alert('✅ テスト送信成功\n\nLINEグループを確認してください。');
-  } else {
-    SpreadsheetApp.getUi().alert('❌ 送信失敗\n\n' + result.error);
-  }
-}
 
 // ===== フォーム/スプレッドシート連携 =====
 /**
@@ -164,15 +151,6 @@ function sendCustomNotification(title, message, options = {}) {
 }
 
 // ===== UI関連 =====
-/**
- * 送信ダイアログを表示
- */
-function showSendDialog() {
-  const html = HtmlService.createHtmlOutputFromFile('SendForm')
-    .setWidth(500)
-    .setHeight(500);
-  SpreadsheetApp.getUi().showModalDialog(html, 'LINE通知送信');
-}
 
 /**
  * メニューを追加
@@ -180,9 +158,6 @@ function showSendDialog() {
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('📱 LINE通知')
-    .addItem('📤 通知を送信', 'showSendDialog')
-    .addItem('🧪 テスト送信', 'testLineNotification')
-    .addSeparator()
     .addItem('📊 昨日のPL情報を送信', 'sendYesterdayPLReport')
     .addItem('📅 指定期間のPL情報を送信', 'sendPLReportWithPeriod')
     .addSeparator()
