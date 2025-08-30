@@ -160,6 +160,7 @@ function onOpen() {
   ui.createMenu('📱 LINE通知')
     .addItem('📊 昨日のPL情報を送信', 'sendYesterdayPLReport')
     .addItem('📅 指定期間のPL情報を送信', 'sendPLReportWithPeriod')
+    .addItem('💰 現預金残高を送信', 'sendCashBalanceReport')
     .addSeparator()
     .addItem('⚙️ 初期設定', 'showSettingsDialog')
     .addItem('🔍 設定確認', 'checkSettings')
@@ -569,6 +570,205 @@ function sendDailyPLReportAuto() {
     }
   } catch (error) {
     console.error('自動PLレポート送信エラー:', error);
+  }
+}
+
+// ===== 現預金残高機能 =====
+
+/**
+ * 現預金残高を送信（前日の実残高と翌月末の予算残高）
+ */
+function sendCashBalanceReport() {
+  try {
+    // 昨日の日付を取得
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // 翌月末の日付を取得
+    const nextMonthEnd = new Date();
+    nextMonthEnd.setMonth(nextMonthEnd.getMonth() + 2, 0); // 翌月の最終日
+    
+    // 現預金データを取得
+    const cashData = getCashBalanceData(yesterday, nextMonthEnd);
+    
+    if (!cashData) {
+      SpreadsheetApp.getUi().alert('現預金データが見つかりませんでした。CFシートを確認してください。');
+      return;
+    }
+    
+    // メッセージを作成
+    const message = formatCashBalanceMessage(cashData);
+    
+    // LINE送信
+    const result = sendLineNotification(message);
+    
+    if (result.success) {
+      SpreadsheetApp.getUi().alert('✅ 現預金残高情報を送信しました\n\nLINEグループを確認してください。');
+    } else {
+      SpreadsheetApp.getUi().alert('❌ 送信失敗\n\n' + result.error);
+    }
+  } catch (error) {
+    console.error('現預金残高送信エラー:', error);
+    SpreadsheetApp.getUi().alert('エラーが発生しました: ' + error.toString());
+  }
+}
+
+/**
+ * 現預金残高データを取得
+ * @param {Date} actualDate - 実残高の日付（前日）
+ * @param {Date} budgetDate - 予算残高の日付（翌月末）
+ * @return {Object|null} 現預金データオブジェクト
+ */
+function getCashBalanceData(actualDate, budgetDate) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // 実残高のシート名を決定（例: 202508CF）
+  const actualSheetName = formatCFSheetName(actualDate);
+  const actualSheet = spreadsheet.getSheetByName(actualSheetName);
+  
+  // 予算残高のシート名を決定（例: 202509CF）
+  const budgetSheetName = formatCFSheetName(budgetDate);
+  const budgetSheet = spreadsheet.getSheetByName(budgetSheetName);
+  
+  if (!actualSheet && !budgetSheet) {
+    console.error('CFシートが見つかりません:', actualSheetName, budgetSheetName);
+    return null;
+  }
+  
+  const data = {
+    actualDate: formatDateString(actualDate),
+    budgetDate: formatDateString(budgetDate),
+    actualBalance: null,
+    budgetBalance: null,
+    actualSheetName: actualSheetName,
+    budgetSheetName: budgetSheetName
+  };
+  
+  // 実残高を取得（前日のデータ）
+  if (actualSheet) {
+    const actualData = findCashBalanceInSheet(actualSheet, actualDate);
+    if (actualData) {
+      data.actualBalance = actualData.actualBalance;
+    }
+  }
+  
+  // 予算残高を取得（翌月末のデータ）
+  if (budgetSheet) {
+    const budgetData = findCashBalanceInSheet(budgetSheet, budgetDate);
+    if (budgetData) {
+      data.budgetBalance = budgetData.budgetBalance;
+    }
+  }
+  
+  return data;
+}
+
+/**
+ * CFシート内から指定日付の現預金残高を検索
+ * @param {Sheet} sheet - 検索対象のシート
+ * @param {Date} targetDate - 検索する日付
+ * @return {Object|null} 残高データ
+ */
+function findCashBalanceInSheet(sheet, targetDate) {
+  // 7行目から日付を探す（最大100列まで検索）
+  const dateRow = sheet.getRange(7, 1, 1, 100).getValues()[0];
+  const budgetRow = sheet.getRange(8, 1, 1, 100).getValues()[0];
+  const actualRow = sheet.getRange(9, 1, 1, 100).getValues()[0];
+  
+  // 日付を検索
+  for (let i = 0; i < dateRow.length; i++) {
+    if (!dateRow[i]) continue;
+    
+    const cellDate = new Date(dateRow[i]);
+    // 日付の比較（日単位で一致するか確認）
+    if (formatDateString(cellDate) === formatDateString(targetDate)) {
+      return {
+        date: formatDateString(targetDate),
+        budgetBalance: budgetRow[i],
+        actualBalance: actualRow[i]
+      };
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * CFシート名をフォーマット（例: 202508CF）
+ * @param {Date} date - 日付
+ * @return {string} シート名
+ */
+function formatCFSheetName(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}${month}CF`;
+}
+
+/**
+ * 現預金残高メッセージをフォーマット
+ * @param {Object} cashData - 現預金データ
+ * @return {string} フォーマットされたメッセージ
+ */
+function formatCashBalanceMessage(cashData) {
+  const formatCurrency = (num) => {
+    if (typeof num !== 'number') return '取得不可';
+    return '¥' + num.toLocaleString('ja-JP');
+  };
+  
+  let message = `💰 現預金残高情報\n`;
+  message += `━━━━━━━━━━━━\n\n`;
+  
+  message += `【実残高】\n`;
+  message += `📅 ${cashData.actualDate}時点\n`;
+  message += `💵 ${formatCurrency(cashData.actualBalance)}\n`;
+  message += `（${cashData.actualSheetName}より取得）\n\n`;
+  
+  message += `【予算残高】\n`;
+  message += `📅 ${cashData.budgetDate}時点\n`;
+  message += `💴 ${formatCurrency(cashData.budgetBalance)}\n`;
+  message += `（${cashData.budgetSheetName}より取得）\n\n`;
+  
+  // 差額を計算
+  if (typeof cashData.actualBalance === 'number' && typeof cashData.budgetBalance === 'number') {
+    const difference = cashData.budgetBalance - cashData.actualBalance;
+    const sign = difference >= 0 ? '📈' : '📉';
+    message += `【予実差額】\n`;
+    message += `${sign} ${formatCurrency(difference)}`;
+  }
+  
+  return message;
+}
+
+/**
+ * 毎日定時に現預金残高を自動送信するためのトリガー関数
+ */
+function sendDailyCashBalanceAuto() {
+  try {
+    // 昨日の日付を取得
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // 翌月末の日付を取得
+    const nextMonthEnd = new Date();
+    nextMonthEnd.setMonth(nextMonthEnd.getMonth() + 2, 0);
+    
+    const cashData = getCashBalanceData(yesterday, nextMonthEnd);
+    
+    if (!cashData || (!cashData.actualBalance && !cashData.budgetBalance)) {
+      console.log('現預金データが見つかりません');
+      return;
+    }
+    
+    const message = formatCashBalanceMessage(cashData);
+    const result = sendLineNotification(message);
+    
+    if (result.success) {
+      console.log('現預金残高送信成功:', new Date());
+    } else {
+      console.error('現預金残高送信失敗:', result.error);
+    }
+  } catch (error) {
+    console.error('自動現預金残高送信エラー:', error);
   }
 }
 
