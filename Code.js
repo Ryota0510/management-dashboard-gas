@@ -720,20 +720,19 @@ function formatCashBalanceMessage(cashData) {
   
   message += `【実残高】\n`;
   message += `📅 ${cashData.actualDate}時点\n`;
-  message += `💵 ${formatCurrency(cashData.actualBalance)}\n`;
-  message += `（${cashData.actualSheetName}より取得）\n\n`;
+  message += `💵 ${formatCurrency(cashData.actualBalance)}\n\n`;
   
-  message += `【予算残高】\n`;
+  message += `【翌月末予測残高】\n`;
   message += `📅 ${cashData.budgetDate}時点\n`;
-  message += `💴 ${formatCurrency(cashData.budgetBalance)}\n`;
-  message += `（${cashData.budgetSheetName}より取得）\n\n`;
+  message += `💴 ${formatCurrency(cashData.budgetBalance)}\n\n`;
   
   // 差額を計算
   if (typeof cashData.actualBalance === 'number' && typeof cashData.budgetBalance === 'number') {
     const difference = cashData.budgetBalance - cashData.actualBalance;
     const sign = difference >= 0 ? '📈' : '📉';
-    message += `【予実差額】\n`;
-    message += `${sign} ${formatCurrency(difference)}`;
+    const changeText = difference >= 0 ? '増加見込' : '減少見込';
+    message += `【資金増減見込】\n`;
+    message += `${sign} ${changeText}: ${formatCurrency(Math.abs(difference))}`;
   }
   
   return message;
